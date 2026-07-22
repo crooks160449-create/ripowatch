@@ -1,0 +1,6 @@
+﻿{
+    "port": 8765,
+    "host": "127.0.0.1",
+    "debounce_seconds": 2,
+    "auto_start": true
+}

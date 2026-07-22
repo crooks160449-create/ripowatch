@@ -1,0 +1,42 @@
+﻿# MkDocs 自动部署到 GitHub Pages
+# 每当 main 分支收到 push，自动构建并发布网站
+
+name: 部署课程网站
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:     # 允许手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # 获取完整 git 历史（git-revision-date 插件需要）
+
+      - name: 配置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装依赖
+        run: |
+          pip install mkdocs mkdocs-material \
+            mkdocs-git-revision-date-localized-plugin \
+            pymdown-extensions
+
+      - name: 构建网站
+        run: mkdocs build --strict
+
+      - name: 部署到 GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          force_orphan: true

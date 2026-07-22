@@ -1,0 +1,76 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ repo.name }} - RepoWatch{% endblock %}
+
+{% block nav_extra %}
+<a href="/" class="text-sm text-gray-400 hover:text-white transition-colors no-underline ml-2">&larr; 仓库列表</a>
+<span class="text-sm text-gray-500 ml-2">/</span>
+<span class="text-sm text-white ml-2">{{ repo.name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="flex h-full">
+    <!-- File tree sidebar -->
+    <aside class="w-64 bg-[#0d1117] border-r border-[#30363d] overflow-y-auto flex-shrink-0">
+        <div class="p-3 border-b border-[#21262d] flex items-center gap-2 text-xs text-gray-400">
+            <span class="px-2 py-0.5 rounded-full border {% if repo.status == 'clean' %}border-green-600 text-green-400{% else %}border-yellow-600 text-yellow-400{% endif %}">
+                {{ repo.status }}
+            </span>
+            <span>{{ repo.branch }}</span>
+            <span class="ml-auto">{{ repo.file_count }} 文件</span>
+        </div>
+        <div class="p-2 text-xs font-medium text-gray-500 uppercase tracking-wider">文件结构</div>
+        <div id="file-tree" class="text-sm"></div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="flex-1 bg-[#0d1117] overflow-y-auto">
+        <div class="p-8 text-center text-gray-500">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <p class="text-lg">选择一个文件查看</p>
+            <p class="text-sm mt-2 text-gray-600">在左侧文件树中点击文件即可查看代码</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    var treeData = {{ tree|safe }};
+
+    function renderTree(items, container) {
+        var ul = document.createElement('ul');
+        ul.className = 'ml-0';
+        items.forEach(function(item) {
+            var li = document.createElement('li');
+            if (item.type === 'directory') {
+                var header = document.createElement('div');
+                header.className = 'flex items-center gap-1 px-2 py-1 cursor-pointer file-tree-item rounded text-gray-400 hover:text-white';
+                header.innerHTML = '<span class="toggle text-xs w-4">&#9660;</span><span class="text-gray-500">&#128193;</span><span class="ml-1">' + item.name + '</span>';
+                var childrenDiv = document.createElement('div');
+                childrenDiv.className = 'ml-3';
+                renderTree(item.children || [], childrenDiv);
+                header.addEventListener('click', function() {
+                    var isOpen = childrenDiv.style.display !== 'none';
+                    childrenDiv.style.display = isOpen ? 'none' : 'block';
+                    header.querySelector('.toggle').innerHTML = isOpen ? '&#9654;' : '&#9660;';
+                });
+                li.appendChild(header);
+                li.appendChild(childrenDiv);
+            } else {
+                var a = document.createElement('a');
+                a.href = '/repos/{{ repo.name }}/file/' + item.path;
+                a.className = 'flex items-center gap-1 px-2 py-1 file-tree-item rounded text-gray-400 hover:text-white no-underline';
+                a.innerHTML = '<span class="w-4"></span><span class="text-blue-400">&#128196;</span><span class="ml-1">' + item.name + '</span>';
+                // Highlight current file if matching
+                if (window.location.pathname.endsWith('/' + item.path)) {
+                    a.className += ' active';
+                    a.style.color = '#58a6ff';
+                }
+                li.appendChild(a);
+            }
+            ul.appendChild(li);
+        });
+        container.appendChild(ul);
+    }
+
+    renderTree(treeData, document.getElementById('file-tree'));
+</script>
+{% endblock %}

@@ -1,0 +1,87 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ file_path }} - {{ repo.name }} - RepoWatch{% endblock %}
+
+{% block nav_extra %}
+<a href="/" class="text-sm text-gray-400 hover:text-white transition-colors no-underline ml-2">&larr;</a>
+<a href="/repos/{{ repo.name }}" class="text-sm text-gray-400 hover:text-white transition-colors no-underline ml-1">{{ repo.name }}</a>
+<span class="text-sm text-gray-600 ml-1">/</span>
+{% set parts = file_path.split("/") %}
+{% for p in parts %}
+{% if loop.last %}
+<span class="text-sm text-white ml-1">{{ p }}</span>
+{% else %}
+<span class="text-sm text-gray-400 ml-1">{{ p }}</span>
+<span class="text-sm text-gray-600 ml-1">/</span>
+{% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block content %}
+<div class="flex h-full">
+    <!-- File tree sidebar -->
+    <aside class="w-64 bg-[#0d1117] border-r border-[#30363d] overflow-y-auto flex-shrink-0">
+        <div class="p-3 border-b border-[#21262d] flex items-center gap-2 text-xs text-gray-400">
+            <span class="px-2 py-0.5 rounded-full border {% if repo.status == 'clean' %}border-green-600 text-green-400{% else %}border-yellow-600 text-yellow-400{% endif %}">
+                {{ repo.status }}
+            </span>
+            <span>{{ repo.branch }}</span>
+            <span class="ml-auto">{{ repo.file_count }} 文件</span>
+        </div>
+        <div class="p-2 text-xs font-medium text-gray-500 uppercase tracking-wider">文件结构</div>
+        <div id="file-tree" class="text-sm"></div>
+    </aside>
+
+    <!-- PDF viewer -->
+    <div class="flex-1 bg-[#0d1117] flex flex-col overflow-hidden">
+        <div class="code-header flex items-center gap-3 px-4 py-2 bg-[#161b22] text-sm text-gray-400">
+            <span class="text-gray-300 font-medium">{{ file_name }}</span>
+           <span class="px-2 py-0.5 rounded bg-[#21262d] text-xs text-red-400">PDF</span>
+            <a href="/repos/{{ repo.name }}/raw/{{ file_path }}" target="_blank" class="ml-auto px-3 py-1 rounded text-xs bg-blue-600 hover:bg-blue-500 text-white transition-colors no-underline">在新标签页中打开</a>
+       </div>
+      <div class="flex-1 relative" style="min-height:0">
+           <iframe src="/repos/{{ repo.name }}/raw/{{ file_path }}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" title="PDF Viewer"></iframe>
+      </div>
+    </div>
+</div>
+
+<script>
+    var treeData = {{ tree|safe }};
+
+    function renderTree(items, container) {
+        var ul = document.createElement("ul");
+        ul.className = "ml-0";
+        items.forEach(function(item) {
+            var li = document.createElement("li");
+            if (item.type === "directory") {
+                var header = document.createElement("div");
+                header.className = "flex items-center gap-1 px-2 py-1 cursor-pointer file-tree-item rounded text-gray-400 hover:text-white";
+                header.innerHTML = '<span class="toggle text-xs w-4">&#9660;</span><span class="text-gray-500">&#128193;</span><span class="ml-1">' + item.name + '</span>';
+                var childrenDiv = document.createElement("div");
+                childrenDiv.className = "ml-3";
+                renderTree(item.children || [], childrenDiv);
+                header.addEventListener("click", function() {
+                    var isOpen = childrenDiv.style.display !== "none";
+                    childrenDiv.style.display = isOpen ? "none" : "block";
+                    header.querySelector(".toggle").innerHTML = isOpen ? "&#9654;" : "&#9660;";
+                });
+                li.appendChild(header);
+                li.appendChild(childrenDiv);
+            } else {
+                var a = document.createElement("a");
+                a.href = "/repos/{{ repo.name }}/file/" + item.path;
+                a.className = "flex items-center gap-1 px-2 py-1 file-tree-item rounded text-gray-400 hover:text-white no-underline";
+                a.innerHTML = '<span class="w-4"></span><span class="text-blue-400">&#128196;</span><span class="ml-1">' + item.name + '</span>';
+                if (window.location.pathname.endsWith("/" + item.path)) {
+                    a.className += " active";
+                    a.style.color = "#58a6ff";
+                }
+                li.appendChild(a);
+            }
+            ul.appendChild(li);
+        });
+        container.appendChild(ul);
+    }
+
+    renderTree(treeData, document.getElementById("file-tree"));
+</script>
+{% endblock %}

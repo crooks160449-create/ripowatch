@@ -1,0 +1,149 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ file_path }} - {{ repo.name }} - RepoWatch{% endblock %}
+
+{% block nav_extra %}
+<a href="/" class="text-sm text-gray-400 hover:text-white transition-colors no-underline ml-2">&larr;</a>
+<a href="/repos/{{ repo.name }}" class="text-sm text-gray-400 hover:text-white transition-colors no-underline ml-1">{{ repo.name }}</a>
+<span class="text-sm text-gray-600 ml-1">/</span>
+{% set parts = file_path.split("/") %}
+{% for p in parts %}
+{% if loop.last %}
+<span class="text-sm text-white ml-1">{{ p }}</span>
+{% else %}
+<span class="text-sm text-gray-400 ml-1">{{ p }}</span>
+<span class="text-sm text-gray-600 ml-1">/</span>
+{% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block content %}
+<div class="flex h-full">
+    <!-- File tree sidebar -->
+    <aside class="w-64 bg-[#0d1117] border-r border-[#30363d] overflow-y-auto flex-shrink-0">
+        <div class="p-3 border-b border-[#21262d] flex items-center gap-2 text-xs text-gray-400">
+            <span class="px-2 py-0.5 rounded-full border {% if repo.status == 'clean' %}border-green-600 text-green-400{% else %}border-yellow-600 text-yellow-400{% endif %}">
+                {{ repo.status }}
+            </span>
+            <span>{{ repo.branch }}</span>
+            <span class="ml-auto">{{ repo.file_count }} 文件</span>
+        </div>
+        <div class="p-2 text-xs font-medium text-gray-500 uppercase tracking-wider">文件结构</div>
+        <div id="file-tree" class="text-sm"></div>
+    </aside>
+
+    <!-- Document viewer -->
+    <div class="flex-1 bg-[#1a1a2e] overflow-y-auto">
+        <div class="flex items-center gap-3 px-4 py-2 bg-[#161b22] text-sm text-gray-400 border-b border-[#30363d]">
+            <span class="text-gray-300 font-medium">{{ file_name }}</span>
+            <span class="px-2 py-0.5 rounded bg-[#21262d] text-xs text-blue-400">DOCX</span>
+            <span class="ml-auto text-xs text-gray-500">{{ elements|length }} 个元素</span>
+        </div>
+
+        {% if elements %}
+        <div class="max-w-4xl mx-auto py-8 px-6">
+            <div class="bg-white rounded-xl shadow-2xl p-8 md:p-12 space-y-4">
+                {% for elem in elements %}
+
+                {# -- Heading -- #}
+                {% if elem.type == "heading" %}
+                    {% if elem.level == 1 %}
+                    <h1 class="text-3xl font-bold text-gray-900 mt-6 mb-4">{{ elem.text }}</h1>
+                    {% elif elem.level == 2 %}
+                    <h2 class="text-2xl font-bold text-gray-800 mt-5 mb-3">{{ elem.text }}</h2>
+                    {% elif elem.level == 3 %}
+                    <h3 class="text-xl font-semibold text-gray-800 mt-4 mb-2">{{ elem.text }}</h3>
+                    {% else %}
+                    <h4 class="text-lg font-semibold text-gray-800 mt-3 mb-2">{{ elem.text }}</h4>
+                    {% endif %}
+
+                {# -- Paragraph -- #}
+                {% elif elem.type == "paragraph" %}
+                <p class="text-gray-700 leading-relaxed {% if elem.bold %}font-semibold{% endif %} {% if elem.italic %}italic{% endif %}">
+                    {{ elem.text }}
+                </p>
+
+                {# -- Bullet list -- #}
+                {% elif elem.type == "list_bullet" %}
+                <ul class="list-disc list-inside text-gray-700 ml-4">
+                    <li class="{% if elem.bold %}font-semibold{% endif %}">{{ elem.text }}</li>
+                </ul>
+
+                {# -- Numbered list -- #}
+                {% elif elem.type == "list_number" %}
+                <ol class="list-decimal list-inside text-gray-700 ml-4">
+                    <li class="{% if elem.bold %}font-semibold{% endif %}">{{ elem.text }}</li>
+                </ol>
+
+                {# -- Table -- #}
+                {% elif elem.type == "table" %}
+                <div class="overflow-x-auto my-4">
+                    <table class="w-full border-collapse border border-gray-300 text-sm">
+                        {% for row in elem.rows %}
+                        <tr>
+                            {% for cell in row %}
+                            <td class="border border-gray-300 px-3 py-2 text-gray-700{% if loop.first %} font-semibold bg-gray-50{% endif %}">
+                                {{ cell }}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="flex items-center justify-center h-full text-gray-500">
+            <div class="text-center">
+                <svg class="w-16 h-16 mx-auto mb-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                <p>无法提取文档内容</p>
+                <p class="text-sm mt-2 text-gray-600">文件可能不包含文本，或格式不受支持</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    var treeData = {{ tree|safe }};
+
+    function renderTree(items, container) {
+        var ul = document.createElement("ul");
+        ul.className = "ml-0";
+        items.forEach(function(item) {
+            var li = document.createElement("li");
+            if (item.type === "directory") {
+                var header = document.createElement("div");
+                header.className = "flex items-center gap-1 px-2 py-1 cursor-pointer file-tree-item rounded text-gray-400 hover:text-white";
+                header.innerHTML = '<span class="toggle text-xs w-4">&#9660;</span><span class="text-gray-500">&#128193;</span><span class="ml-1">' + item.name + '</span>';
+                var childrenDiv = document.createElement("div");
+                childrenDiv.className = "ml-3";
+                renderTree(item.children || [], childrenDiv);
+                header.addEventListener("click", function() {
+                    var isOpen = childrenDiv.style.display !== "none";
+                    childrenDiv.style.display = isOpen ? "none" : "block";
+                    header.querySelector(".toggle").innerHTML = isOpen ? "&#9654;" : "&#9660;";
+                });
+                li.appendChild(header);
+                li.appendChild(childrenDiv);
+            } else {
+                var a = document.createElement("a");
+                a.href = "/repos/{{ repo.name }}/file/" + item.path;
+                a.className = "flex items-center gap-1 px-2 py-1 file-tree-item rounded text-gray-400 hover:text-white no-underline";
+                a.innerHTML = '<span class="w-4"></span><span class="text-blue-400">&#128196;</span><span class="ml-1">' + item.name + '</span>';
+                if (window.location.pathname.endsWith("/" + item.path)) {
+                    a.className += " active";
+                    a.style.color = "#58a6ff";
+                }
+                li.appendChild(a);
+            }
+            ul.appendChild(li);
+        });
+        container.appendChild(ul);
+    }
+
+    renderTree(treeData, document.getElementById("file-tree"));
+</script>
+{% endblock %}
