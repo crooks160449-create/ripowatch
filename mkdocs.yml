@@ -2,6 +2,7 @@
   - hooks/pptx_converter.py
 
 site_name: RepoWatch 课程资源平台
+site_url: https://crooks160449-create.github.io/ripowatch/
 site_description: 课程代码仓库实时追踪与可视化教学平台
 site_author: RepoWatch Team
 

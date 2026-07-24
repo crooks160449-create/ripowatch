@@ -1,5 +1,4 @@
-﻿# MkDocs 自动部署到 GitHub Pages
-# 每当 main 分支收到 push，自动构建并发布网站
+﻿# MkDocs 自动部署到 GitHub Pages (gh-pages 分支方式)
 
 name: 部署课程网站
 on:
@@ -10,8 +9,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   deploy:
@@ -36,9 +33,10 @@ jobs:
       - name: 构建网站
         run: mkdocs build
 
-      - name: 部署到 GitHub Pages
+      - name: 部署到 gh-pages 分支
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
+          publish_branch: gh-pages
           force_orphan: true
