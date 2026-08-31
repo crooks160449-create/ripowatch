@@ -12,6 +12,7 @@ Usage:
   3. Each .pptx gets a same-named .md with a slide viewer.
 """
 
+import hashlib
 import shutil
 import subprocess
 import uuid
@@ -76,24 +77,29 @@ def _convert_with_powerpoint(pptx_path: Path, out_dir: Path) -> list[Path] | Non
     ps = r"""
 $ErrorActionPreference = "Stop"
 $ppt = New-Object -ComObject PowerPoint.Application
-try {
+try {{
   $pres = $ppt.Presentations.Open('{pptx}', $true, $false, $false)
   $pres.Export('{outdir}', 'PNG', 1600, 900)
   $pres.Close()
-} finally {
+}} finally {{
   $ppt.Quit()
   [System.Runtime.InteropServices.Marshal]::ReleaseComObject($ppt) | Out-Null
-}
-""".format(pptx=str(pptx_path).replace("'", "''"),
-           outdir=str(out_dir).replace("'", "''"))
+}}
+""".format(pptx=str(pptx_path.resolve()).replace("'", "''"),
+           outdir=str(out_dir.resolve()).replace("'", "''"))
 
+    script = out_dir / "_pptx_export.ps1"
+    script.write_bytes(ps.encode("utf-8-sig"))
     try:
         subprocess.run(
-            ["powershell", "-NoProfile", "-Command", ps],
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+             "-File", str(script)],
             check=True, capture_output=True, timeout=300,
         )
     except Exception:
         return None
+    finally:
+        script.unlink(missing_ok=True)
 
     # PowerPoint exports localized names such as 幻灯片1.PNG; find newest batch.
     pngs = sorted(
@@ -116,14 +122,23 @@ def _get_slide_images(pptx_path: Path, out_dir: Path) -> list[Path] | None:
     """Return fresh slide images, converting first if needed."""
     out_dir.mkdir(parents=True, exist_ok=True)
     images = sorted(out_dir.glob("slide-*.png"))
-    if images and all(p.stat().st_mtime >= pptx_path.stat().st_mtime for p in images):
+    marker = out_dir / ".source-hash"
+    pptx_hash = hashlib.md5(pptx_path.read_bytes()).hexdigest()
+
+    # Reuse committed images only when the PPTX source hash still matches.
+    if (images and marker.exists()
+            and marker.read_text(encoding="utf-8").strip() == pptx_hash):
         return images
 
     for old in images:
         old.unlink(missing_ok=True)
+    marker.unlink(missing_ok=True)
 
-    return _convert_with_libreoffice(pptx_path, out_dir) or \
-           _convert_with_powerpoint(pptx_path, out_dir)
+    converted = (_convert_with_libreoffice(pptx_path, out_dir)
+                 or _convert_with_powerpoint(pptx_path, out_dir))
+    if converted:
+        marker.write_text(pptx_hash, encoding="utf-8")
+    return converted
 
 
 # ---------------------------------------------------------------------------
@@ -234,6 +249,9 @@ def _render_slideshow_markdown(images: list[Path], title: str,
     <button class="slide-nav prev" onclick="goSlide(-1)" aria-label="上一页">&#10094;</button>
     <button class="slide-nav next" onclick="goSlide(1)" aria-label="下一页">&#10095;</button>
     <div class="slide-counter" id="slide-counter">1 / {len(imgs)}</div>
+    <button class="slide-play" id="slide-play" onclick="togglePlay()" aria-label="播放">
+      <span class="play-icon">&#9654;</span>
+    </button>
   </div>
   <div class="slide-thumbs" id="slide-thumbs"></div>
 </div>
@@ -254,6 +272,13 @@ def _render_slideshow_markdown(images: list[Path], title: str,
 .slide-nav:hover {{ background: rgba(94,108,255,.85); }}
 .slide-nav.prev {{ left: 10px; }}
 .slide-nav.next {{ right: 10px; }}
+.slide-play {{
+  position: absolute; bottom: 10px; left: 12px;
+  width: 40px; height: 40px; border: 0; border-radius: 50%;
+  background: rgba(15,17,26,.72); color: #fff; font-size: 16px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}}
+.slide-play:hover {{ background: rgba(94,108,255,.85); }}
 .slide-counter {{
   position: absolute; bottom: 10px; right: 12px;
   background: rgba(15,17,26,.78); color: #e5e7eb;
@@ -276,9 +301,13 @@ var slideImages = [
 {img_json}
 ];
 var slideIndex = 0;
+var isPlaying = false;
+var playTimer = null;
 var mainImg = document.getElementById("slide-main");
 var counter = document.getElementById("slide-counter");
 var thumbs = document.getElementById("slide-thumbs");
+var playBtn = document.getElementById("slide-play");
+var playIcon = playBtn.querySelector(".play-icon");
 
 function renderThumbs() {{
   thumbs.innerHTML = "";
@@ -305,9 +334,28 @@ function goSlide(delta) {{
   update();
 }}
 
+function togglePlay() {{
+  isPlaying = !isPlaying;
+  if (isPlaying) {{
+    playIcon.innerHTML = "&#10074;&#10074;";
+    playTimer = setInterval(function() {{
+      slideIndex = (slideIndex + 1) % slideImages.length;
+      update();
+    }}, 3000);
+  }} else {{
+    playIcon.innerHTML = "&#9654;";
+    clearInterval(playTimer);
+    playTimer = null;
+  }}
+}}
+
 document.addEventListener("keydown", function(e) {{
   if (e.key === "ArrowLeft") goSlide(-1);
   if (e.key === "ArrowRight") goSlide(1);
+  if (e.key === " ") {{
+    e.preventDefault();
+    togglePlay();
+  }}
 }});
 
 renderThumbs();
