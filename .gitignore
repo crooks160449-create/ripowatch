@@ -1,12 +1,9 @@
-﻿# MkDocs 构建输出
+# MkDocs 构建输出
 site/
 
 # Python
 __pycache__/
 *.pyc
-
-# PPTX 提取图片（每次构建重新生成）
-docs/assets/pptx/
 
 # IDE
 .vscode/

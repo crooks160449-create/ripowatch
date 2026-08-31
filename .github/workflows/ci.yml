@@ -1,4 +1,4 @@
-﻿# MkDocs 自动部署到 GitHub Pages (gh-pages 分支方式)
+# MkDocs 自动部署到 GitHub Pages
 
 name: 部署课程网站
 on:
@@ -19,6 +19,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 安装 LibreOffice（PPTX 转高清图片）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libreoffice-impress poppler-utils
+
       - name: 配置 Python
         uses: actions/setup-python@v5
         with:
@@ -33,7 +38,7 @@ jobs:
       - name: 构建网站
         run: mkdocs build
 
-      - name: 部署到 gh-pages 分支
+      - name: 部署到 GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
