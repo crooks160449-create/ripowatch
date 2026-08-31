@@ -18,3 +18,6 @@ Thumbs.db
 
 # watched repos (each has its own git)
 watched_repos/
+
+# 本地沙箱依赖目录（仅开发环境使用）
+vendor_python/
