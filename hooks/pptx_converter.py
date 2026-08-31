@@ -209,8 +209,10 @@ def _extract_pptx_slides(pptx_path, img_output_dir):
 def _relative_img_url(img: Path, docs_dir: Path, md_parent: Path) -> str:
     """Return a MkDocs-friendly relative image URL for a markdown page."""
     rel = img.relative_to(docs_dir).as_posix()
-    # Path from the markdown file's directory to the image.
-    return "../" * (len(md_parent.relative_to(docs_dir).parts)) + rel
+    # The generated page lives in its own directory (md file name + "/index.html"),
+    # so we need one extra ".." on top of md_parent's depth.
+    depth = len(md_parent.relative_to(docs_dir).parts) + 1
+    return "../" * depth + rel
 
 
 def _render_slideshow_markdown(images: list[Path], title: str,
