@@ -1,0 +1,66 @@
+# ============================================================
+# GitLab CI 配置 - 课程网站自动构建部署
+# 适用于清华 Git (git.tsinghua.edu.cn) + 自建 Runner
+#
+# 使用方式：
+# 1. 在清华 Git 项目 Settings -> CI/CD -> Runners 新建 Runner
+# 2. 在老师服务器上注册 Runner，tag 填 course-server
+# 3. 在服务器上准备 web 发布目录，路径见 DEPLOY_PATH 变量
+# 4. push 到 main 分支后自动构建部署
+# ============================================================
+
+stages:
+  - build
+  - deploy
+
+variables:
+  PYTHON_VERSION: "3.12"
+  # 服务器上网站发布的目录（Nginx 根目录下的课程子目录）
+  DEPLOY_PATH: "/srv/course-sites/python-course"
+
+# 只在 main 分支和 tag 触发
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+# 构建任务：MkDocs 编译 + PPTX 转换
+build:
+  stage: build
+  tags:
+    - course-server
+  before_script:
+    - python3 --version || echo "请确认服务器已安装 Python 3.10+"
+    - pip3 install --upgrade pip
+    - pip3 install mkdocs mkdocs-material
+    - pip3 install mkdocs-git-revision-date-localized-plugin
+    - pip3 install pymdown-extensions python-pptx Pillow
+  script:
+    - echo "开始构建课程网站..."
+    - mkdocs build --clean
+    - echo "构建完成，产物位于 site/ 目录"
+  artifacts:
+    paths:
+      - site/
+    expire_in: 1 week
+
+# 部署任务：把构建产物复制到服务器 web 目录
+deploy:
+  stage: deploy
+  tags:
+    - course-server
+  needs:
+    - build
+  script:
+    - echo "部署到 $DEPLOY_PATH"
+    - mkdir -p "$DEPLOY_PATH"
+    - rsync -a --delete site/ "$DEPLOY_PATH/"
+    - echo "部署完成"
+    - echo "访问地址请查看服务器 Nginx 配置"
+  only:
+    - main
+
+# 备用方案：如果服务器用 Windows，把上面 deploy 的
+# rsync 命令换成：
+#   robocopy site "$env:DEPLOY_PATH" /MIR
+# 并把 tags 改为对应 Windows Runner 的 tag
