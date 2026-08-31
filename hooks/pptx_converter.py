@@ -15,6 +15,7 @@ Usage:
 import hashlib
 import shutil
 import subprocess
+import urllib.parse
 import uuid
 from pathlib import Path
 
@@ -232,7 +233,8 @@ def _relative_img_url(img: Path, docs_dir: Path, md_parent: Path) -> str:
 
 def _render_slideshow_markdown(images: list[Path], title: str,
                                docs_dir: Path, md_parent: Path,
-                               version: str = "") -> str:
+                               version: str = "",
+                               interactive_url: str | None = None) -> str:
     """Render slide images as an interactive viewer."""
     cache_suffix = f"?v={version}" if version else ""
     imgs = []
@@ -240,7 +242,25 @@ def _render_slideshow_markdown(images: list[Path], title: str,
         url = _relative_img_url(p, docs_dir, md_parent)
         imgs.append(url + cache_suffix)
     img_json = ",\n".join(f'    "{u}"' for u in imgs)
+    interactive_section = ""
+    if interactive_url:
+        interactive_section = f"""
+## 互动演示
+
+<div class="ppt-interactive">
+  <iframe src="{interactive_url}" width="100%" height="600px" frameborder="0"
+          allowfullscreen title="PPT 互动演示"></iframe>
+</div>
+
+<style>
+.ppt-interactive {{ max-width: 1000px; margin: 0 auto 24px; }}
+.ppt-interactive iframe {{ width: 100%; border: 0; border-radius: 8px; background: #fff; }}
+</style>
+"""
+
     return f"""# {title}
+
+{interactive_section}
 
 !!! info "共 {len(imgs)} 页幻灯片"
     此页面保留了 PPT 原始布局，可使用按钮或键盘左右方向键翻页。
@@ -435,8 +455,17 @@ def on_pre_build(*, config, **kwargs):
         images = _get_slide_images(pptx_path, assets_img_dir)
         if images:
             version = hashlib.md5(pptx_path.read_bytes()).hexdigest()[:10]
+            interactive_url = None
+            site_url = config.get("site_url") or ""
+            if site_url:
+                public_pptx = site_url.rstrip("/") + "/" + rel.as_posix()
+                encoded_src = urllib.parse.quote(public_pptx, safe="")
+                interactive_url = (
+                    "https://view.officeapps.live.com/op/embed.aspx?src="
+                    + encoded_src
+                )
             markdown = _render_slideshow_markdown(
-                images, title, docs_dir, md_parent, version)
+                images, title, docs_dir, md_parent, version, interactive_url)
             print(f"     [OK] Generated {len(images)} slide images")
         else:
             slides = _extract_pptx_slides(pptx_path, assets_img_dir)
