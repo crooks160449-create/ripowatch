@@ -231,12 +231,14 @@ def _relative_img_url(img: Path, docs_dir: Path, md_parent: Path) -> str:
 
 
 def _render_slideshow_markdown(images: list[Path], title: str,
-                               docs_dir: Path, md_parent: Path) -> str:
+                               docs_dir: Path, md_parent: Path,
+                               version: str = "") -> str:
     """Render slide images as an interactive viewer."""
-    imgs = [
-        _relative_img_url(p, docs_dir, md_parent)
-        for p in sorted(images, key=lambda x: x.name)
-    ]
+    cache_suffix = f"?v={version}" if version else ""
+    imgs = []
+    for p in sorted(images, key=lambda x: x.name):
+        url = _relative_img_url(p, docs_dir, md_parent)
+        imgs.append(url + cache_suffix)
     img_json = ",\n".join(f'    "{u}"' for u in imgs)
     return f"""# {title}
 
@@ -432,8 +434,9 @@ def on_pre_build(*, config, **kwargs):
 
         images = _get_slide_images(pptx_path, assets_img_dir)
         if images:
+            version = hashlib.md5(pptx_path.read_bytes()).hexdigest()[:10]
             markdown = _render_slideshow_markdown(
-                images, title, docs_dir, md_parent)
+                images, title, docs_dir, md_parent, version)
             print(f"     [OK] Generated {len(images)} slide images")
         else:
             slides = _extract_pptx_slides(pptx_path, assets_img_dir)
