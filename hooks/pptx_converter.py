@@ -452,7 +452,9 @@ def on_pre_build(*, config, **kwargs):
 
         print(f"  -> {rel}")
 
-        images = _get_slide_images(pptx_path, assets_img_dir)
+        # 每个 PPT 独立子目录，避免多个课件互相覆盖图片和哈希标记
+        slide_dir = assets_img_dir / pptx_path.stem
+        images = _get_slide_images(pptx_path, slide_dir)
         if images:
             version = hashlib.md5(pptx_path.read_bytes()).hexdigest()[:10]
             interactive_url = None
