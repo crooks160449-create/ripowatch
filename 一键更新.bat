@@ -17,8 +17,8 @@ git diff --cached --quiet
 if errorlevel 1 goto :commit
 
 echo.
-echo 没有发现新的修改，无需更新。
-goto :done
+echo 没有发现新的修改，直接尝试推送。
+goto :push
 
 :commit
 echo [2/4] 提交修改...
@@ -28,13 +28,23 @@ if "%MSG%"=="" set MSG=自动更新 %TS%
 git commit -m "%MSG%"
 if errorlevel 1 goto :error
 
+:push
 echo [3/4] 推送到 GitHub...
 git push origin main
-if errorlevel 1 goto :error
+if errorlevel 1 (
+  echo     [警告] GitHub 推送失败，继续尝试清华 Git
+) else (
+  echo     [成功] GitHub 已更新
+)
 
 echo [4/4] 推送到清华 Git...
 git push tsinghua main
-if errorlevel 1 goto :error
+if errorlevel 1 (
+  echo     [警告] 清华 Git 推送失败
+  goto :error
+) else (
+  echo     [成功] 清华 Git 已更新
+)
 
 echo.
 echo ============================================
