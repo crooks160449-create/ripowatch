@@ -16,10 +16,14 @@ RUN sed -i 's@deb.debian.org@mirrors.tuna.tsinghua.edu.cn@g' /etc/apt/sources.li
 
 # 安装 LibreOffice（PPTX 转图片）+ poppler（PDF 转图片）
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
     libreoffice-impress \
     poppler-utils \
     fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
+
+# 避免 GitPython 在容器内无仓库时报错干扰构建
+ENV GIT_PYTHON_REFRESH=quiet
 
 # 安装 Python 依赖
 COPY requirements.txt .
