@@ -1,0 +1,10 @@
+# 课程网站服务编排
+services:
+  site:
+    build: .
+    container_name: repowatch-course-site
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    # 多门课程时，可复制本服务并修改端口，例如：
+    #   - "8081:80"

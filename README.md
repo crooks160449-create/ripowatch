@@ -19,9 +19,14 @@ repo-watcher/
 │   ├── 03-进阶项目实操/
 │   └── 资源下载/
 ├── hooks/
-│   └── pptx_converter.py   # PPTX 自动转 Markdown 钩子
+│   ├── pptx_converter.py   # PPTX 自动转图片/文字钩子
+│   └── cloud_media.py      # 清华云盘视频外链自动解析钩子
 ├── .github/workflows/ci.yml # GitHub Pages 自动部署
 ├── .gitlab-ci.yml          # 清华 Git 自动部署（自建 Runner）
+├── Dockerfile              # Docker 多阶段构建镜像
+├── docker-compose.yml      # 本地/服务器一键部署
+├── 部署说明.md             # Runner/Nginx/Docker 部署文档
+├── 使用说明.md             # 老师/助教内容维护手册
 └── requirements.txt
 ```
 
