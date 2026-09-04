@@ -1,51 +1,19 @@
 # ============================================================
-# GitLab CI 配置 - 课程网站自动构建部署
-# 适用于清华 Git (git.tsinghua.edu.cn) + 自建 Runner
+# 清华 Git 自动部署配置
+# push 到 main 分支后，Runner 自动重建并重启课程网站
 # ============================================================
 
 stages:
-  - build
   - deploy
-
-variables:
-  # 服务器上网站发布的目录（Nginx 根目录下的课程子目录）
-  DEPLOY_PATH: "/srv/course-sites/python-course"
-
-workflow:
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_TAG
-
-build:
-  stage: build
-  tags:
-    - course-server
-  before_script:
-    - sudo apt-get update -y
-    - sudo apt-get install -y libreoffice-impress poppler-utils fonts-noto-cjk
-    - pip3 install --upgrade pip
-    - pip3 install mkdocs mkdocs-material
-    - pip3 install mkdocs-git-revision-date-localized-plugin
-    - pip3 install pymdown-extensions python-pptx Pillow
-  script:
-    - echo "开始构建课程网站..."
-    - mkdocs build --clean
-    - echo "构建完成，产物位于 site/ 目录"
-  artifacts:
-    paths:
-      - site/
-    expire_in: 1 week
 
 deploy:
   stage: deploy
   tags:
     - course-server
-  needs:
-    - build
+  image: docker:27
   script:
-    - echo "部署到 $DEPLOY_PATH"
-    - mkdir -p "$DEPLOY_PATH"
-    - rsync -a --delete site/ "$DEPLOY_PATH/"
+    - echo "开始自动部署课程网站..."
+    - docker compose up -d --build
     - echo "部署完成"
   only:
     - main
