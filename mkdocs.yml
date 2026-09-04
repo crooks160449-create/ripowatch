@@ -1,6 +1,7 @@
 hooks:
   - hooks/pptx_converter.py
   - hooks/cloud_media.py
+  - hooks/gallery.py
 
 site_name: RepoWatch 课程资源平台
 site_url: https://crooks160449-create.github.io/ripowatch/
@@ -83,6 +84,7 @@ nav:
     - 课件在线预览: 资源下载/课程课件.md
     - 课件下载: 资源下载/课件下载.md
     - 视频播放测试: 资源下载/视频测试.md
+    - 图片画廊: 资源下载/图片画廊.md
     - 第一讲课件: 资源下载/第一讲课件.md
 
 extra:
