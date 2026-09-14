@@ -14,10 +14,13 @@ __pycache__/
 Thumbs.db
 
 # watched repos (each has its own git)
-watched_repos/
+legacy/旧版RepoWatch/watched_repos/
 
 # 本地沙箱依赖目录（仅开发环境使用）
 vendor_python/
 
 # 本地沙箱依赖目录（仅开发环境使用）
 vp2/
+
+# 本地沙箱依赖目录（仅开发环境使用）
+vp3/
