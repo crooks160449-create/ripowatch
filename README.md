@@ -62,6 +62,15 @@ cp Dockerfile docker-compose.yml /home/libs/course-content/
 
 内容仓库的 watcher 会自动提交推送，触发网站重新构建。
 
+注意：内容仓库的 `docker-compose.yml` 中媒体目录要用服务器的绝对路径：
+
+```yaml
+volumes:
+  - /home/libs/course-content/media:/usr/share/nginx/html/media
+```
+
+框架仓库保持相对路径 `./media`（本地开发用）。视频文件存放在服务器的 `media/videos/`，由 watcher 生成索引，不进 Git。
+
 ## 目录说明
 
 ```

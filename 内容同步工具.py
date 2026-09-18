@@ -82,7 +82,8 @@ def sync_git():
     """自动提交并推送文档改动（排除 media 目录）。"""
     ts = now_str()
 
-    result = run_git(["add", "-A", "--", ".", ":!media"])
+    # media/ 已在 .gitignore 中，直接 add 所有文件即可自动跳过
+    result = run_git(["add", "-A", "--", "."])
     if result.returncode != 0:
         print(f"[{ts}] git add 失败：{result.stderr.strip()}")
         return
