@@ -1,6 +1,10 @@
 # MkDocs 构建输出
 site/
 
+# 课程内容已迁移到 repowatch-content 仓库
+# 本地 docs/ 仅用于开发时本地预览，不提交到框架仓库
+docs/
+
 # Python
 __pycache__/
 *.pyc
